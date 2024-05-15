@@ -12,7 +12,7 @@ ENV PATH=/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:
 # Installing necessary packages
 
 # Installing basicpy and other pip packages
-RUN pip --no-cache-dir install git+https://github.com/peng-lab/BaSiCpy@dev bioformats_jar
+RUN pip --no-cache-dir install git+https://github.com/peng-lab/BaSiCpy@v1.2.0 bioformats_jar
 
 # Copy script and test run
 COPY ./main.py /opt/
