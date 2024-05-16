@@ -14,6 +14,12 @@ ENV PATH=/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:
 # Installing basicpy and other pip packages
 RUN pip --no-cache-dir install git+https://github.com/peng-lab/BaSiCpy@v1.2.0 bioformats_jar
 
+# Pre-fetch bioformats jars to a world-readable location
+RUN python -c 'import bfio; bfio.start()' \
+    && mv /root/.jgo /root/.m2 /tmp \
+    && chmod -R a+rwX /tmp/.jgo /tmp/.m2
+ENV HOME=/tmp
+
 # Copy script and test run
 COPY ./main.py /opt/
 # RUN mkdir /data
