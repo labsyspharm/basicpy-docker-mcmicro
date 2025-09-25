@@ -12,7 +12,7 @@ ENV PATH=/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:
 # Installing necessary packages
 
 # Installing basicpy and other pip packages
-RUN pip --no-cache-dir install basicpy==1.2.0 bioformats_jar 'scikit-image>=0.21.0'
+RUN pip --no-cache-dir install basicpy==1.2.0 bioformats_jar 'scikit-image>=0.21.0' 'hyperactive<5'
 
 # Pre-fetch bioformats jars to a world-readable location.
 # Force TLS 1.2 to work around a Java bug in the JDK version in this container.
