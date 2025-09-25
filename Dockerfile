@@ -17,7 +17,7 @@ RUN pip --no-cache-dir install basicpy==1.2.0 bioformats_jar 'scikit-image>=0.21
 # Pre-fetch bioformats jars to a world-readable location.
 # Force TLS 1.2 to work around a Java bug in the JDK version in this container.
 RUN env JAVA_TOOL_OPTIONS='-Dhttps.protocols=TLSv1.2' \
-    python -c 'import bfio; bfio.start()' \
+    python -c 'import bioformats_jar; bioformats_jar.get_loci()' \
     && mv /root/.jgo /root/.m2 /tmp \
     && chmod -R a+rwX /tmp/.jgo /tmp/.m2
 ENV HOME=/tmp
