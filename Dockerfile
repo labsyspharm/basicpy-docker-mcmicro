@@ -8,19 +8,19 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV CONDA_DIR=/opt/conda
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV PATH=/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# maven.repo.local: Make maven store artifacts in our known location
+# https.protocols: Force TLS 1.2 to work around a Java bug in the JDK version
+ENV MAVEN_OPTS='-Dmaven.repo.local=/opt/scyjava/.m2/repository -Dhttps.protocols=TLSv1.2'
+# BIOFORMATS_VERSION should match what's provided by the pinned version of bfio
+# below. Otherwise each container run will re-download the artifacts anway.
+ENV BIOFORMATS_VERSION='8.0.1'
 
 # Installing necessary packages
+RUN pip --no-cache-dir install basicpy==1.2.0 bioformats_jar bfio==2.4.8 'scikit-image>=0.21.0' 'hyperactive<5'
 
-# Installing basicpy and other pip packages
-RUN pip --no-cache-dir install basicpy==1.2.0 bioformats_jar 'scikit-image>=0.21.0' 'hyperactive<5'
-
-# Pre-fetch bioformats jars to a world-readable location.
-# Force TLS 1.2 to work around a Java bug in the JDK version in this container.
-RUN env JAVA_TOOL_OPTIONS='-Dhttps.protocols=TLSv1.2' \
-    python -c 'import bioformats_jar; bioformats_jar.get_loci()' \
-    && mv /root/.jgo /root/.m2 /tmp \
-    && chmod -R a+rwX /tmp/.jgo /tmp/.m2
-ENV HOME=/tmp
+# Pre-fetch bioformats jars to a known location.
+RUN --mount=type=bind,source=populate_scyjava_cache.py,target=/tmp/populate_scyjava_cache.py \
+    python /tmp/populate_scyjava_cache.py
 
 # Copy script and test run
 COPY ./main.py /opt/

@@ -2,6 +2,7 @@
 import argparse
 import logging
 from argparse import ArgumentParser as AP
+import os
 from os.path import splitext
 from pathlib import Path
 
@@ -9,7 +10,9 @@ import jax
 import numpy as np
 from aicsimageio import AICSImage
 from basicpy import BaSiC
+import scyjava
 from skimage.io import imsave
+
 
 logger = logging.Logger("basicpy-docker-mcmicro")
 logger.setLevel(logging.INFO)
@@ -208,6 +211,15 @@ def main(args):
     # Initialize flatfields and darkfields
     flatfields = []
     darkfields = []
+
+    # Set up our own location for maven and jgo to stash their files and
+    # configure scyjava and jgo to use it.
+    container_scyjava_base = Path('/opt/scyjava')
+    if container_scyjava_base.exists():
+        scyjava.config.set_cache_dir(container_scyjava_base / '.jgo')
+        scyjava.config.set_m2_repo(container_scyjava_base / '.m2' / 'repository')
+        # This is actually the easiest way to globally set the jgo cache dir.
+        os.environ['JGO_CACHE_DIR'] = str(scyjava.config.get_cache_dir())
 
     # Check if input is a folder or a file
     if args.input.is_file():
