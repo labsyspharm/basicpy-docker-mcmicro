@@ -8,13 +8,12 @@ import pathlib
 import scyjava
 
 # Set up our own location for maven and jgo to stash their files and configure
-# scyjava and jgo to use it.
+# scyjava to use it. (jgo and maven are already configured via environment
+# variables set in the container definition)
 base = pathlib.Path('/opt/scyjava')
 base.mkdir(exist_ok=True)
 scyjava.config.set_cache_dir(base / '.jgo')
 scyjava.config.set_m2_repo(base / '.m2' / 'repository')
-# This is actually the easiest way to globally set the jgo cache dir.
-os.environ['JGO_CACHE_DIR'] = str(scyjava.config.get_cache_dir())
 
 # Using aicsimageio to read OME/Bioformats files can lead to the creation of two
 # different jgo workspaces depending on which of the bioformats and bfio readers

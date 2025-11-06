@@ -212,14 +212,15 @@ def main(args):
     flatfields = []
     darkfields = []
 
-    # Set up our own location for maven and jgo to stash their files and
-    # configure scyjava and jgo to use it.
-    container_scyjava_base = Path('/opt/scyjava')
-    if container_scyjava_base.exists():
+    if 'BASICPY_DOCKER_MCMICRO' in os.environ:
+        # If we're running inside our own container, configure scyjava to use
+        # our custom location for maven and jgo to stash their files. (jgo and
+        # maven should already be configured via environment variables)
+        # Otherwise leave the scyjava defaults alone so the script is usable
+        # outside the container as well.
+        container_scyjava_base = Path('/opt/scyjava')
         scyjava.config.set_cache_dir(container_scyjava_base / '.jgo')
         scyjava.config.set_m2_repo(container_scyjava_base / '.m2' / 'repository')
-        # This is actually the easiest way to globally set the jgo cache dir.
-        os.environ['JGO_CACHE_DIR'] = str(scyjava.config.get_cache_dir())
 
     # Check if input is a folder or a file
     if args.input.is_file():
