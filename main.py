@@ -201,7 +201,7 @@ def get_args():
 def main(args):
     # Select device
     if args.device == "cpu":
-        jax.config.update("jax_platform_name", "cpu")
+        jax.config.update("jax_platforms", "cpu")
 
     # Run BASIC
     basic = BaSiC(
