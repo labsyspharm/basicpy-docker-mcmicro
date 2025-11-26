@@ -14,7 +14,13 @@ import scyjava
 import tifffile
 
 
-logger = logging.Logger("basicpy-docker-mcmicro")
+logging.basicConfig(
+    format="%(asctime)s.%(msecs)03d %(name)-20s %(levelname)-8s : %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.WARNING,
+    force=True,
+)
+logger = logging.getLogger("basicpy-docker-mcmicro")
 logger.setLevel(logging.INFO)
 
 
@@ -227,8 +233,11 @@ def main(args):
         logger.info(f"opening images at {args.input}")
         image = AICSImage(args.input)
         for channel in range(image.dims.C):
+            logger.info(f'Begin processing channel {channel + 1}')
+            logger.info(f'Total image fields to load: {len(image.scenes)}')
             images_data = []
-            for scene in image.scenes:
+            for i, scene in enumerate(image.scenes, 1):
+                logger.info(f'Loading field {i}')
                 image.set_scene(scene)
                 images_data.append(image.get_image_data("MTZYX", C=channel))
             images_data = np.array(images_data).reshape(
@@ -239,31 +248,41 @@ def main(args):
                     "The image is single sited. Was it saved in the correct way?"
                 )
             if not args.no_autotune:
+                logger.info('Autotuning parameters')
                 basic.autotune(
                     images_data,
                     fourier_l0_norm_cost_coef=args.autotune_fourier_l0_norm_cost_coef,
                 )
+            logger.info('Generating illumination correction profiles')
             basic.fit(images_data)
             flatfields.append(basic.flatfield)
             darkfields.append(basic.darkfield)
+            logger.info(f'End processing channel {channel}')
 
     # If input is a folder
     else:
         images_data = None
         channels = None
+        num_images = 0
         for image_path in args.input.iterdir():
             logger.info(f"opening images at {image_path}")
             image = AICSImage(image_path)
+            num_images += 1
             if channels is None:
                 channels = image.channel_names
-                images_data = [[] for _ in len(channels)]
+                images_data = [[] * len(channels)]
             else:
                 assert channels == image.channel_names
         for channel in range(len(channels)):
+            logger.info(f'Begin processing channel {channel + 1}')
+            logger.info(f'Total image files to load: {num_images}')
             images_data = []
             for image_path in args.input.iterdir():
+                logger.info(f'Opening image {image_path}')
                 image = AICSImage(image_path)
-                for scene in image.scenes:
+                logger.info(f'Total image fields to load: {len(image.scenes)}')
+                for i, scene in enumerate(image.scenes, 1):
+                    logger.info(f'Loading field {i}')
                     image.set_scene(scene)
                     images_data.append(image.get_image_data("MTZYX", C=channel))
             images_data = np.array(images_data).reshape(
@@ -274,13 +293,16 @@ def main(args):
                     "The image is single sited. Was it saved in the correct way?"
                 )
             if not args.no_autotune:
+                logger.info('Autotuning parameters')
                 basic.autotune(
                     images_data,
                     fourier_l0_norm_cost_coef=args.autotune_fourier_l0_norm_cost_coef,
                 )
+            logger.info('Generating illumination correction profiles')
             basic.fit(images_data)
             flatfields.append(basic.flatfield)
             darkfields.append(basic.darkfield)
+            logger.info(f'End processing channel {channel}')
 
     flatfields = np.array(flatfields)
     darkfields = np.array(darkfields)
