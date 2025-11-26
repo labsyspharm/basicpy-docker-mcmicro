@@ -11,7 +11,7 @@ import numpy as np
 from aicsimageio import AICSImage
 from basicpy import BaSiC
 import scyjava
-from skimage.io import imsave
+import tifffile
 
 
 logger = logging.Logger("basicpy-docker-mcmicro")
@@ -282,17 +282,22 @@ def main(args):
             flatfields.append(basic.flatfield)
             darkfields.append(basic.darkfield)
 
-    # Re-arrange flatfields and darkfields axis to be (z, y, x, c)
-    flatfields = np.moveaxis(np.array(flatfields), 0, -1)
-    darkfields = np.moveaxis(np.array(darkfields), 0, -1)
+    flatfields = np.array(flatfields)
+    darkfields = np.array(darkfields)
 
     # Get output file names, splitext gets the file name without the extension
-    flatfield_path = args.output_folder / f"{args.output_flatfield}-ffp.tiff"
-    darkfield_path = args.output_folder / f"{args.output_darkfield}-dfp.tiff"
+    flatfield_path = args.output_folder / f'{args.output_flatfield}-ffp.ome.tif'
+    darkfield_path = args.output_folder / f'{args.output_darkfield}-dfp.ome.tif'
 
     # Save flatfields and darkfields
-    imsave(flatfield_path, flatfields, check_contrast=False)
-    imsave(darkfield_path, darkfields, check_contrast=False)
+    tf_kwargs = dict(
+        photometric='minisblack',
+        compression='adobe_deflate',
+        predictor=True,
+        ome=True,
+    )
+    tifffile.imwrite(flatfield_path, flatfields, **tf_kwargs)
+    tifffile.imwrite(darkfield_path, darkfields, **tf_kwargs)
 
 
 if __name__ == "__main__":
