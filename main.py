@@ -6,9 +6,10 @@ import os
 from os.path import splitext
 from pathlib import Path
 
+import dask
 import jax
 import numpy as np
-from aicsimageio import AICSImage
+import aicsimageio
 from basicpy import BaSiC
 import scyjava
 import tifffile
@@ -212,6 +213,7 @@ def main(args):
         fitting_mode=args.fitting_mode,
         get_darkfield=args.darkfield,
         sort_intensity=args.sort_intensity,
+        resize_mode='skimage_dask',
     )
 
     # Initialize flatfields and darkfields
@@ -228,36 +230,46 @@ def main(args):
         scyjava.config.set_cache_dir(container_scyjava_base / '.jgo')
         scyjava.config.set_m2_repo(container_scyjava_base / '.m2' / 'repository')
 
+    dask.config.set(scheduler='synchronous')
+
     # Check if input is a folder or a file
     if args.input.is_file():
-        logger.info(f"opening images at {args.input}")
-        image = AICSImage(args.input)
-        for channel in range(image.dims.C):
-            logger.info(f'Begin processing channel {channel + 1}')
-            logger.info(f'Total image fields to load: {len(image.scenes)}')
-            images_data = []
-            for i, scene in enumerate(image.scenes, 1):
-                logger.info(f'Loading field {i}')
-                image.set_scene(scene)
-                images_data.append(image.get_image_data("MTZYX", C=channel))
-            images_data = np.array(images_data).reshape(
-                [-1, *images_data[0].shape[-2:]]
+        logger.info(f"opening image at {args.input}")
+        image = aicsimageio.AICSImage(args.input)
+        if image.dims.order not in ('TCZYX', 'MTCZYX'):
+            raise RuntimeError(
+                f"Unexpected image dimension order: {image.dims.order}"
             )
-            if images_data.shape[0] < 2 and not args.ignore_single_image_error:
-                raise RuntimeError(
-                    "The image is single sited. Was it saved in the correct way?"
-                )
+        istack = aicsimageio.transforms.generate_stack(
+            image,
+            'xarray_dask_data',
+            drop_non_matching_scenes=True,
+            scene_character='M',
+        )
+        if istack.dims != ('M', 'T', 'C', 'Z', 'Y', 'X'):
+            raise RuntimeError(
+                f"Unexpected stack dimension order: {istack.dims}"
+            )
+        istack = istack.stack(I=('M', 'T', 'Z')).transpose('C', 'I', 'Y', 'X')
+        if len(istack.coords['I']) < 2 and not args.ignore_single_image_error:
+            raise RuntimeError(
+                "The image is single sited. Was it saved in the correct way?"
+            )
+        for c, channel_stack in enumerate(istack, 1):
+            logger.info(f'Begin processing channel {c}')
+            channel_data = channel_stack.data
             if not args.no_autotune:
                 logger.info('Autotuning parameters')
+                channel_data = channel_data.compute()
                 basic.autotune(
-                    images_data,
+                    channel_data,
                     fourier_l0_norm_cost_coef=args.autotune_fourier_l0_norm_cost_coef,
                 )
             logger.info('Generating illumination correction profiles')
-            basic.fit(images_data)
+            basic.fit(channel_data)
             flatfields.append(basic.flatfield)
             darkfields.append(basic.darkfield)
-            logger.info(f'End processing channel {channel}')
+            logger.info(f'End processing channel {c}')
 
     # If input is a folder
     else:
@@ -266,7 +278,7 @@ def main(args):
         num_images = 0
         for image_path in args.input.iterdir():
             logger.info(f"opening images at {image_path}")
-            image = AICSImage(image_path)
+            image = aicsimageio.AICSImage(image_path)
             num_images += 1
             if channels is None:
                 channels = image.channel_names
@@ -279,7 +291,7 @@ def main(args):
             images_data = []
             for image_path in args.input.iterdir():
                 logger.info(f'Opening image {image_path}')
-                image = AICSImage(image_path)
+                image = aicsimageio.AICSImage(image_path)
                 logger.info(f'Total image fields to load: {len(image.scenes)}')
                 for i, scene in enumerate(image.scenes, 1):
                     logger.info(f'Loading field {i}')
