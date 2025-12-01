@@ -9,7 +9,7 @@ from pathlib import Path
 import dask
 import jax
 import numpy as np
-import aicsimageio
+import bioio_bioformats
 from basicpy import BaSiC
 import scyjava
 import tifffile
@@ -235,14 +235,12 @@ def main(args):
     # Check if input is a folder or a file
     if args.input.is_file():
         logger.info(f"opening image at {args.input}")
-        image = aicsimageio.AICSImage(args.input)
+        image = bioio_bioformats.Reader(args.input)
         if image.dims.order not in ('TCZYX', 'MTCZYX'):
             raise RuntimeError(
                 f"Unexpected image dimension order: {image.dims.order}"
             )
-        istack = aicsimageio.transforms.generate_stack(
-            image,
-            'xarray_dask_data',
+        istack = image.get_xarray_dask_stack(
             drop_non_matching_scenes=True,
             scene_character='M',
         )

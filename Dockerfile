@@ -13,14 +13,11 @@ ENV PATH=/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:
 ENV MAVEN_OPTS='-Dmaven.repo.local=/opt/scyjava/.m2/repository -Dhttps.protocols=TLSv1.2'
 # Configure jgo to create its workspaces in our known location.
 ENV JGO_CACHE_DIR='/opt/scyjava/.jgo'
-# BIOFORMATS_VERSION should match what's provided by the pinned version of bfio
-# below. Otherwise the artifacts will be re-downloaded at runtime anyway.
-ENV BIOFORMATS_VERSION='8.0.1'
 # Our script checks this variable to see whether it's running in the container.
 ENV BASICPY_DOCKER_MCMICRO=1
 
 # Installing necessary packages
-RUN pip --no-cache-dir install basicpy==1.2.0 bioformats_jar bfio==2.4.8 'scikit-image>=0.21.0' 'hyperactive<5'
+RUN pip --no-cache-dir install basicpy==1.2.0 bioio 'git+https://github.com/jmuhlich/bioio-bioformats.git@perf-ome-metadata' 'scikit-image>=0.21.0' 'hyperactive<5' && pip uninstall -y aicsimageio bfio
 
 # Pre-fetch bioformats jars to a known location.
 RUN --mount=type=bind,source=populate_scyjava_cache.py,target=/tmp/populate_scyjava_cache.py \
