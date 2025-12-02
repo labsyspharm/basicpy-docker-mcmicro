@@ -1,5 +1,4 @@
 testdata/*-dfp.tiff
 testdata/*-ffp.tiff
-.python-version
 *.sw*
 scratch

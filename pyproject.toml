@@ -1,0 +1,20 @@
+[project]
+name = "basicpy-docker-mcmicro"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "basicpy==1.2.0",
+    "bioio>=3.0.0",
+    "bioio-bioformats",
+    "hyperactive<5",
+    "imagecodecs>=2025.3.30",
+    "jax>=0.4.23",
+    "jaxlib>=0.4.23",
+    "numpy>=1.26.4",
+    "scikit-image>=0.21.0",
+]
+
+[tool.uv.sources]
+bioio-bioformats = { git = "https://github.com/jmuhlich/bioio-bioformats.git", rev = "perf-ome-metadata" }
